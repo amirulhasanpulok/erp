@@ -7,6 +7,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserEntity } from './entities/user.entity';
 import { UsersRepository } from './repositories/users.repository';
 
 @Injectable()
@@ -98,7 +99,7 @@ export class UsersService {
     return { status: 'deactivated' };
   }
 
-  private toResponse(user: { [k: string]: unknown }, roles: string[]): Record<string, unknown> {
+  private toResponse(user: UserEntity, roles: string[]): Record<string, unknown> {
     return {
       id: user.id,
       outletId: user.outletId,

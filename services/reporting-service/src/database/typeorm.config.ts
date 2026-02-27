@@ -14,6 +14,6 @@ export default new DataSource({
   synchronize: false,
   logging: false,
   entities: [ReportMetricEntity],
-  migrations: ['src/database/migrations/*.ts']
+  migrations: [`${__dirname}/migrations/*{.ts,.js}`]
 });
 

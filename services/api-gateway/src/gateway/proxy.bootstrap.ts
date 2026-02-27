@@ -40,13 +40,17 @@ export function registerServiceProxies(app: INestApplication): void {
         changeOrigin: true,
         proxyTimeout: 30000,
         timeout: 30000,
-        onProxyReq: (proxyReq, req: { headers: Record<string, string | string[] | undefined> }) => {
+        onProxyReq: (proxyReq: any, req: { headers: Record<string, string | string[] | undefined> }) => {
           const requestId = req.headers['x-request-id'];
           if (typeof requestId === 'string' && requestId) {
             proxyReq.setHeader('x-request-id', requestId);
           }
         },
-        onError: (error, req, res: { writeHead: (s: number, h: Record<string, string>) => void; end: (b: string) => void }) => {
+        onError: (
+          error: any,
+          req: any,
+          res: { writeHead: (s: number, h: Record<string, string>) => void; end: (b: string) => void }
+        ) => {
           logger.error(`Proxy failure for ${proxy.routePrefix}: ${error.message}`);
           res.writeHead(502, { 'Content-Type': 'application/json' });
           res.end(
@@ -57,7 +61,7 @@ export function registerServiceProxies(app: INestApplication): void {
             })
           );
         }
-      })
+      } as any)
     );
     logger.log(`Proxy mapped: ${proxy.routePrefix} -> ${proxy.target}`);
   }

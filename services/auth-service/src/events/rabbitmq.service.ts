@@ -1,16 +1,17 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Channel, Connection, ConsumeMessage, connect } from 'amqplib';
+import { Channel, ConsumeMessage, connect } from 'amqplib';
 
 @Injectable()
 export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMqService.name);
-  private connection?: Connection;
+  private connection?: Awaited<ReturnType<typeof connect>>;
   private channel?: Channel;
 
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit(): Promise<void> {
+    if (this.channel) return;
     const url = this.configService.getOrThrow<string>('RABBITMQ_URL');
     const exchange = this.configService.get<string>('RABBITMQ_EXCHANGE', 'erp.events');
     const queue = this.configService.get<string>('RABBITMQ_QUEUE', 'auth-service.events.q');
@@ -53,6 +54,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   }
 
   async consume(onMessage: (message: ConsumeMessage) => Promise<void>): Promise<void> {
+    await this.onModuleInit();
     const queue = this.configService.get<string>('RABBITMQ_QUEUE', 'auth-service.events.q');
     await this.getChannel().consume(queue, (message) => {
       if (!message) {
@@ -74,4 +76,3 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     await this.connection?.close();
   }
 }
-

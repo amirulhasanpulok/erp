@@ -33,6 +33,7 @@
   "devDependencies": {
     "@nestjs/cli": "^10.4.9",
     "@nestjs/schematics": "^10.1.4",
+    "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^20.17.10",
     "typeorm-ts-node-commonjs": "^0.3.20",

@@ -1,13 +1,14 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Channel, Connection, ConsumeMessage, connect } from 'amqplib';
+import { Channel, ConsumeMessage, connect } from 'amqplib';
 
 @Injectable()
 export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMqService.name);
-  private connection?: Connection;
+  private connection?: Awaited<ReturnType<typeof connect>>;
   private channel?: Channel;
 
   async onModuleInit(): Promise<void> {
+    if (this.channel) return;
     const url = process.env.RABBITMQ_URL ?? 'amqp://erp:erp123@rabbitmq:5672';
     this.connection = await connect(url);
     this.channel = await this.connection.createChannel();
@@ -39,6 +40,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   }
 
   async consume(handler: (message: ConsumeMessage) => Promise<void>): Promise<void> {
+    await this.onModuleInit();
     const queue = process.env.RABBITMQ_QUEUE ?? 'sales-service.events.q';
     await this.getChannel().consume(queue, (message) => {
       if (!message) return;

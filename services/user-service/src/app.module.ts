@@ -23,7 +23,7 @@ import { UsersModule } from './modules/users/users.module';
         username: configService.getOrThrow<string>('DB_USER'),
         password: configService.getOrThrow<string>('DB_PASSWORD'),
         database: configService.getOrThrow<string>('DB_NAME'),
-        ssl: configService.get<boolean>('DB_SSL', false),
+        ssl: false,
         autoLoadEntities: true,
         synchronize: false
       })
@@ -40,4 +40,3 @@ import { UsersModule } from './modules/users/users.module';
   controllers: [HealthController]
 })
 export class AppModule {}
-

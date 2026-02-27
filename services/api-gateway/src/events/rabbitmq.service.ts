@@ -1,16 +1,31 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Channel, Connection, ConsumeMessage, connect } from 'amqplib';
+import { Channel, ConsumeMessage, connect } from 'amqplib';
 
 @Injectable()
 export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMqService.name);
-  private connection?: Connection;
+  private connection?: Awaited<ReturnType<typeof connect>>;
   private channel?: Channel;
+  private initializing?: Promise<void>;
 
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit(): Promise<void> {
+    if (this.channel) return;
+    await this.initializeChannel();
+  }
+
+  private async initializeChannel(): Promise<void> {
+    if (this.channel) {
+      return;
+    }
+    if (this.initializing) {
+      await this.initializing;
+      return;
+    }
+
+    this.initializing = (async () => {
     const url = this.configService.getOrThrow<string>('RABBITMQ_URL');
     const exchange = this.configService.get<string>('RABBITMQ_EXCHANGE', 'erp.events');
     const queue = this.configService.get<string>('RABBITMQ_QUEUE', 'api-gateway.events.q');
@@ -45,6 +60,13 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.logger.log(`RabbitMQ ready: exchange=${exchange}, queue=${queue}`);
+    })();
+
+    try {
+      await this.initializing;
+    } finally {
+      this.initializing = undefined;
+    }
   }
 
   getChannel(): Channel {
@@ -63,6 +85,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   }
 
   async consume(onMessage: (message: ConsumeMessage) => Promise<void>): Promise<void> {
+    await this.initializeChannel();
     const queue = this.configService.get<string>('RABBITMQ_QUEUE', 'api-gateway.events.q');
     await this.getChannel().consume(queue, (msg) => {
       if (!msg) {
@@ -84,4 +107,3 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     await this.connection?.close();
   }
 }
-

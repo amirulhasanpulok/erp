@@ -1,6 +1,6 @@
 import { Injectable, Module, OnModuleInit } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Channel, Connection, ConsumeMessage, connect } from 'amqplib';
+import { Channel, ConsumeMessage, connect } from 'amqplib';
 import Redis from 'ioredis';
 import { NotificationEntity } from './notification.entity';
 import { NotificationRepository } from './notification.repository';
@@ -14,7 +14,7 @@ type CanonicalEvent = {
 @Injectable()
 class NotificationEventsSubscriber implements OnModuleInit {
   private channel?: Channel;
-  private connection?: Connection;
+  private connection?: Awaited<ReturnType<typeof connect>>;
   private readonly redis = new Redis(process.env.REDIS_URL ?? 'redis://redis:6379');
   private readonly ttl = Number(process.env.EVENT_IDEMPOTENCY_TTL_SECONDS ?? 86400);
 

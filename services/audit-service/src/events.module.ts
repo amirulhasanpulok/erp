@@ -1,5 +1,5 @@
 import { Injectable, Module, OnModuleInit } from '@nestjs/common';
-import { Channel, Connection, ConsumeMessage, connect } from 'amqplib';
+import { Channel, ConsumeMessage, connect } from 'amqplib';
 import Redis from 'ioredis';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditRecordEntity } from './audit-record.entity';
@@ -9,7 +9,7 @@ import { AuditService } from './audit.service';
 @Injectable()
 class AuditEventsSubscriber implements OnModuleInit {
   private channel?: Channel;
-  private connection?: Connection;
+  private connection?: Awaited<ReturnType<typeof connect>>;
   private readonly redis = new Redis(process.env.REDIS_URL ?? 'redis://redis:6379');
   private readonly ttl = Number(process.env.EVENT_IDEMPOTENCY_TTL_SECONDS ?? 86400);
   constructor(private readonly auditService: AuditService) {}
