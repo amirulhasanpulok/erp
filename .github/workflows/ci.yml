@@ -1,0 +1,115 @@
+name: ERP CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  contract-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests/contracts
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tests/contracts/package.json
+
+      - name: Install
+        run: npm install
+
+      - name: Run event contract tests
+        run: npm test
+
+  service-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - user-service
+          - outlet-service
+          - product-service
+          - inventory-service
+          - sales-service
+          - purchase-service
+          - accounts-service
+          - manufacturing-service
+          - ecommerce-service
+          - reporting-service
+          - notification-service
+          - audit-service
+          - logistics-service
+          - payment-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: services/${{ matrix.service }}/package.json
+
+      - name: Install
+        working-directory: services/${{ matrix.service }}
+        run: npm install
+
+      - name: Lint (if present)
+        working-directory: services/${{ matrix.service }}
+        run: npm run lint --if-present
+
+      - name: Test (if present)
+        working-directory: services/${{ matrix.service }}
+        run: npm test --if-present
+
+      - name: Build
+        working-directory: services/${{ matrix.service }}
+        run: npm run build --if-present
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - admin-web
+          - ecommerce-web
+          - pos-pwa
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/${{ matrix.app }}/package.json
+
+      - name: Install
+        working-directory: apps/${{ matrix.app }}
+        run: npm install
+
+      - name: Lint (if present)
+        working-directory: apps/${{ matrix.app }}
+        run: npm run lint --if-present
+
+      - name: Test (if present)
+        working-directory: apps/${{ matrix.app }}
+        run: npm test --if-present
+
+      - name: Build
+        working-directory: apps/${{ matrix.app }}
+        run: npm run build --if-present

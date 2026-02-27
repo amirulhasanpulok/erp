@@ -1,0 +1,105 @@
+[
+  {
+    "eventId": "11111111-1111-1111-1111-111111111111",
+    "eventType": "SALE_CREATED",
+    "timestamp": "2026-02-21T10:00:00.000Z",
+    "source": "sales-service",
+    "version": "1.0",
+    "data": {
+      "saleId": "22222222-2222-2222-2222-222222222222",
+      "outletId": "33333333-3333-3333-3333-333333333333",
+      "grandTotal": 1250.5
+    }
+  },
+  {
+    "eventId": "44444444-4444-4444-4444-444444444444",
+    "eventType": "PURCHASE_RECEIVED",
+    "timestamp": "2026-02-21T10:05:00.000Z",
+    "source": "purchase-service",
+    "version": "1.0",
+    "data": {
+      "purchaseId": "55555555-5555-5555-5555-555555555555",
+      "outletId": "33333333-3333-3333-3333-333333333333",
+      "items": [
+        {
+          "productId": "66666666-6666-6666-6666-666666666666",
+          "quantity": 100
+        }
+      ]
+    }
+  },
+  {
+    "eventId": "77777777-7777-7777-7777-777777777777",
+    "eventType": "MANUFACTURE_COMPLETED",
+    "timestamp": "2026-02-21T10:10:00.000Z",
+    "source": "manufacturing-service",
+    "version": "1.0",
+    "data": {
+      "workOrderId": "88888888-8888-8888-8888-888888888888",
+      "outletId": "33333333-3333-3333-3333-333333333333",
+      "finishedGoodProductId": "99999999-9999-9999-9999-999999999999",
+      "producedQty": 20
+    }
+  },
+  {
+    "eventId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "eventType": "ECOM_ORDER_PLACED",
+    "timestamp": "2026-02-21T10:15:00.000Z",
+    "source": "ecommerce-service",
+    "version": "1.0",
+    "data": {
+      "orderId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "outletId": "33333333-3333-3333-3333-333333333333",
+      "amount": 1999.99
+    }
+  },
+  {
+    "eventId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "eventType": "STOCK_UPDATED",
+    "timestamp": "2026-02-21T10:20:00.000Z",
+    "source": "inventory-service",
+    "version": "1.0",
+    "data": {
+      "outletId": "33333333-3333-3333-3333-333333333333",
+      "productId": "66666666-6666-6666-6666-666666666666",
+      "delta": -2,
+      "currentQty": 98
+    }
+  },
+  {
+    "eventId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    "eventType": "PAYMENT_CONFIRMED",
+    "timestamp": "2026-02-21T10:25:00.000Z",
+    "source": "payment-service",
+    "version": "1.0",
+    "data": {
+      "orderId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "transactionId": "TXN-1001",
+      "amount": 1999.99
+    }
+  },
+  {
+    "eventId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+    "eventType": "SHIPMENT_CREATED",
+    "timestamp": "2026-02-21T10:30:00.000Z",
+    "source": "logistics-service",
+    "version": "1.0",
+    "data": {
+      "orderId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "trackingId": "TRK-2002",
+      "courier": "steadfast"
+    }
+  },
+  {
+    "eventId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+    "eventType": "DELIVERY_STATUS_UPDATED",
+    "timestamp": "2026-02-21T10:35:00.000Z",
+    "source": "logistics-service",
+    "version": "1.0",
+    "data": {
+      "orderId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "trackingId": "TRK-2002",
+      "status": "delivered"
+    }
+  }
+]

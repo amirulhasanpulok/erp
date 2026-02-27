@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-platform.local/schemas/event-envelope.schema.json",
+  "title": "ERP Canonical Event Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "eventType",
+    "timestamp",
+    "source",
+    "version",
+    "data"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "SALE_CREATED",
+        "PURCHASE_RECEIVED",
+        "MANUFACTURE_COMPLETED",
+        "ECOM_ORDER_PLACED",
+        "STOCK_UPDATED",
+        "PAYMENT_CONFIRMED",
+        "SHIPMENT_CREATED",
+        "DELIVERY_STATUS_UPDATED"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "data": {
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,401 @@
+version: "3.9"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: erp-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-erp}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-erp123}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [erp-network]
+
+  redis:
+    image: redis:7-alpine
+    container_name: erp-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [erp-network]
+
+  api-gateway:
+    build: { context: ./services/api-gateway, dockerfile: Dockerfile }
+    container_name: erp-api-gateway
+    env_file: [./services/api-gateway/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3000:3000"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [erp-network]
+
+  auth-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: auth_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5433:5432"]
+    volumes: [auth_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d auth_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  auth-service:
+    build: { context: ./services/auth-service, dockerfile: Dockerfile }
+    env_file: [./services/auth-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3001:3001"]
+    depends_on:
+      auth-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  user-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: user_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5434:5432"]
+    volumes: [user_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d user_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  user-service:
+    build: { context: ./services/user-service, dockerfile: Dockerfile }
+    env_file: [./services/user-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3002:3002"]
+    depends_on:
+      user-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3002/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  outlet-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: outlet_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5435:5432"]
+    volumes: [outlet_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d outlet_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  outlet-service:
+    build: { context: ./services/outlet-service, dockerfile: Dockerfile }
+    env_file: [./services/outlet-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3003:3003"]
+    depends_on:
+      outlet-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3003/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  product-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: product_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5436:5432"]
+    volumes: [product_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d product_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  product-service:
+    build: { context: ./services/product-service, dockerfile: Dockerfile }
+    env_file: [./services/product-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3004:3004"]
+    depends_on:
+      product-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3004/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  inventory-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: inventory_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5437:5432"]
+    volumes: [inventory_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d inventory_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  inventory-service:
+    build: { context: ./services/inventory-service, dockerfile: Dockerfile }
+    env_file: [./services/inventory-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3005:3005"]
+    depends_on:
+      inventory-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3005/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  sales-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: sales_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5438:5432"]
+    volumes: [sales_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d sales_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  sales-service:
+    build: { context: ./services/sales-service, dockerfile: Dockerfile }
+    env_file: [./services/sales-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3006:3006"]
+    depends_on:
+      sales-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3006/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  purchase-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: purchase_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5439:5432"]
+    volumes: [purchase_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d purchase_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  purchase-service:
+    build: { context: ./services/purchase-service, dockerfile: Dockerfile }
+    env_file: [./services/purchase-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3007:3007"]
+    depends_on:
+      purchase-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3007/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  accounts-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: accounts_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5440:5432"]
+    volumes: [accounts_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d accounts_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  accounts-service:
+    build: { context: ./services/accounts-service, dockerfile: Dockerfile }
+    env_file: [./services/accounts-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3008:3008"]
+    depends_on:
+      accounts-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3008/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  manufacturing-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: manufacturing_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5441:5432"]
+    volumes: [manufacturing_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d manufacturing_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  manufacturing-service:
+    build: { context: ./services/manufacturing-service, dockerfile: Dockerfile }
+    env_file: [./services/manufacturing-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3009:3009"]
+    depends_on:
+      manufacturing-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3009/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  ecommerce-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: ecommerce_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5442:5432"]
+    volumes: [ecommerce_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d ecommerce_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  ecommerce-service:
+    build: { context: ./services/ecommerce-service, dockerfile: Dockerfile }
+    env_file: [./services/ecommerce-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-replace_with_internal_service_key}
+    ports: ["3010:3010"]
+    depends_on:
+      ecommerce-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3010/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  reporting-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: reporting_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5443:5432"]
+    volumes: [reporting_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d reporting_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  reporting-service:
+    build: { context: ./services/reporting-service, dockerfile: Dockerfile }
+    env_file: [./services/reporting-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3011:3011"]
+    depends_on:
+      reporting-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3011/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  notification-service:
+    build: { context: ./services/notification-service, dockerfile: Dockerfile }
+    env_file: [./services/notification-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3012:3012"]
+    depends_on:
+      notification-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3012/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  notification-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: notification_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5447:5432"]
+    volumes: [notification_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d notification_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  audit-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: audit_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5444:5432"]
+    volumes: [audit_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d audit_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  audit-service:
+    build: { context: ./services/audit-service, dockerfile: Dockerfile }
+    env_file: [./services/audit-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3013:3013"]
+    depends_on:
+      audit-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3013/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  logistics-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: logistics_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5445:5432"]
+    volumes: [logistics_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d logistics_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  logistics-service:
+    build: { context: ./services/logistics-service, dockerfile: Dockerfile }
+    env_file: [./services/logistics-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+    ports: ["3014:3014"]
+    depends_on:
+      logistics-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3014/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  payment-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: payment_service, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+    ports: ["5446:5432"]
+    volumes: [payment_db_data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres -d payment_service"], interval: 10s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+  payment-service:
+    build: { context: ./services/payment-service, dockerfile: Dockerfile }
+    env_file: [./services/payment-service/.env.example]
+    environment:
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace_with_access_secret}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-replace_with_internal_service_key}
+    ports: ["3015:3015"]
+    depends_on:
+      payment-db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:3015/api/v1/health"], interval: 15s, timeout: 5s, retries: 10 }
+    networks: [erp-network]
+
+  admin-web:
+    build: { context: ./apps/admin-web, dockerfile: Dockerfile }
+    container_name: erp-admin-web
+    ports: ["${ADMIN_WEB_PORT:-3100}:3100"]
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:3000
+    depends_on:
+      api-gateway: { condition: service_healthy }
+    networks: [erp-network]
+
+  ecommerce-web:
+    build: { context: ./apps/ecommerce-web, dockerfile: Dockerfile }
+    container_name: erp-ecommerce-web
+    ports: ["${ECOMMERCE_WEB_PORT:-3200}:3200"]
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:3000
+    depends_on:
+      api-gateway: { condition: service_healthy }
+    networks: [erp-network]
+
+  pos-pwa:
+    build: { context: ./apps/pos-pwa, dockerfile: Dockerfile }
+    container_name: erp-pos-pwa
+    ports: ["${POS_PWA_PORT:-3300}:3300"]
+    environment:
+      VITE_API_BASE: http://localhost:3000
+    depends_on:
+      api-gateway: { condition: service_healthy }
+    networks: [erp-network]
+
+networks:
+  erp-network:
+    driver: bridge
+
+volumes:
+  auth_db_data:
+  user_db_data:
+  outlet_db_data:
+  product_db_data:
+  inventory_db_data:
+  sales_db_data:
+  purchase_db_data:
+  accounts_db_data:
+  manufacturing_db_data:
+  ecommerce_db_data:
+  reporting_db_data:
+  audit_db_data:
+  logistics_db_data:
+  payment_db_data:
+  notification_db_data:
