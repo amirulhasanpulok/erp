@@ -1,0 +1,8 @@
+{
+  "name": "@erp/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared contracts and security primitives for ERP microservices",
+  "main": "index.ts",
+  "types": "index.ts"
+}

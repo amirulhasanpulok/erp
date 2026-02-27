@@ -33,5 +33,18 @@ export class ReportsService {
       totalCredits: value.toFixed(2)
     };
   }
-}
 
+  async kpis(outletId?: string): Promise<
+    Array<{
+      outletId: string;
+      salesEvents: number;
+      paymentEvents: number;
+      shipmentEvents: number;
+      totalEvents: number;
+      snapshotDate: string;
+    }>
+  > {
+    await this.repository.refreshKpiMaterializedView();
+    return this.repository.kpis(outletId);
+  }
+}

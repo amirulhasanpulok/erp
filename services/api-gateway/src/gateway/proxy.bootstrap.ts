@@ -38,6 +38,7 @@ export function registerServiceProxies(app: INestApplication): void {
       createProxyMiddleware({
         target: proxy.target,
         changeOrigin: true,
+        pathRewrite: (path: string) => `${proxy.routePrefix}${path}`,
         proxyTimeout: 30000,
         timeout: 30000,
         onProxyReq: (proxyReq: any, req: { headers: Record<string, string | string[] | undefined> }) => {

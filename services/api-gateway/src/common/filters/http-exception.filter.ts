@@ -24,6 +24,7 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getResponse()
         : { message: 'Internal server error' };
+    const requestId = request.headers['x-request-id'] ?? null;
 
     this.logger.error(
       `[${request.method}] ${request.url} -> ${status}`,
@@ -33,9 +34,9 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
     response.status(status).json({
       statusCode: status,
       path: request.url,
+      requestId,
       timestamp: new Date().toISOString(),
       error: payload
     });
   }
 }
-

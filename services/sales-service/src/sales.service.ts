@@ -21,10 +21,15 @@ export class SalesService {
         manager.getRepository(SaleEntity).create({
           outletId: dto.outletId,
           productId: dto.productId,
+          branchId: dto.branchId ?? null,
+          customerId: dto.customerId ?? null,
+          status: dto.status ?? 'completed',
           quantity: dto.quantity,
           total: dto.total,
           paymentMethod: dto.paymentMethod,
-          invoiceNo
+          invoiceNo,
+          createdBy: null,
+          updatedBy: null
         })
       );
       const outboxRow = await this.outboxRepository.create(

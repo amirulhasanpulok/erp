@@ -23,7 +23,7 @@ import { UsersModule } from './modules/users/users.module';
         username: configService.getOrThrow<string>('DB_USER'),
         password: configService.getOrThrow<string>('DB_PASSWORD'),
         database: configService.getOrThrow<string>('DB_NAME'),
-        ssl: false,
+        ssl: String(process.env.DB_SSL ?? 'false').toLowerCase() === 'true' ? { rejectUnauthorized: false } : false,
         autoLoadEntities: true,
         synchronize: false
       })

@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { EventsPublisher } from '../events/events.publisher';
 import { PublishTestEventDto } from './dto/publish-test-event.dto';
 
@@ -11,6 +13,7 @@ export class GatewayController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @Roles('hq_admin', 'manager', 'developer')
   @Get('routes')
   getRoutes(): Record<string, string> {
     return {
@@ -34,10 +37,11 @@ export class GatewayController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @Roles('hq_admin', 'developer')
+  @Permissions('events.publish')
   @Post('events/test')
   async publishTestEvent(@Body() body: PublishTestEventDto): Promise<{ status: string }> {
     await this.eventsPublisher.publish(body.eventType, body.source ?? 'api-gateway', body.data);
     return { status: 'published' };
   }
 }
-

@@ -22,6 +22,7 @@ import { OutboxService } from './outbox.service';
         username: c.get('DB_USER'),
         password: c.get('DB_PASSWORD'),
         database: c.get('DB_NAME'),
+        ssl: String(process.env.DB_SSL ?? 'false').toLowerCase() === 'true' ? { rejectUnauthorized: false } : false,
         autoLoadEntities: true,
         synchronize: false
       })

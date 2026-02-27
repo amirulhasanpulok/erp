@@ -1,5 +1,26 @@
 name: erp-platform-prod
 
+x-common-env: &common-env
+  NODE_ENV: ${NODE_ENV:-production}
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+  INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+  RABBITMQ_URL: ${RABBITMQ_URL}
+  RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE}
+  REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+  EVENT_IDEMPOTENCY_TTL_SECONDS: 86400
+  EVENT_DLQ_MAX_RETRIES: ${EVENT_DLQ_MAX_RETRIES:-3}
+
+x-backend-service: &backend-service
+  restart: unless-stopped
+  env_file:
+    - ../env/.env.prod
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  networks: [erp_net]
+
 services:
   rabbitmq:
     image: rabbitmq:3.13-management
@@ -30,240 +51,440 @@ services:
     networks: [erp_net]
 
   api-gateway:
+    <<: *backend-service
     build:
       context: ../../services/api-gateway
+    environment:
+      <<: *common-env
+      PORT: 3000
+      API_PREFIX: api
+      API_VERSION: v1
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3002
+      OUTLET_SERVICE_URL: http://outlet-service:3003
+      PRODUCT_SERVICE_URL: http://product-service:3004
+      INVENTORY_SERVICE_URL: http://inventory-service:3005
+      SALES_SERVICE_URL: http://sales-service:3006
+      PURCHASE_SERVICE_URL: http://purchase-service:3007
+      ACCOUNTS_SERVICE_URL: http://accounts-service:3008
+      MANUFACTURING_SERVICE_URL: http://manufacturing-service:3009
+      ECOMMERCE_SERVICE_URL: http://ecommerce-service:3010
+      REPORTING_SERVICE_URL: http://reporting-service:3011
+      NOTIFICATION_SERVICE_URL: http://notification-service:3012
+      AUDIT_SERVICE_URL: http://audit-service:3013
+      LOGISTICS_SERVICE_URL: http://logistics-service:3014
+      PAYMENT_SERVICE_URL: http://payment-service:3015
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX}
+      CORS_ENABLED: ${CORS_ENABLED}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      HELMET_ENABLED: ${HELMET_ENABLED}
+      TRUST_PROXY: ${TRUST_PROXY}
+      INTERNAL_IP_WHITELIST_ENABLED: ${INTERNAL_IP_WHITELIST_ENABLED}
+      INTERNAL_IP_WHITELIST: ${INTERNAL_IP_WHITELIST}
+      LOG_LEVEL: ${LOG_LEVEL}
+      OTEL_ENABLED: ${OTEL_ENABLED}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  auth-service:
+    <<: *backend-service
+    build: { context: ../../services/auth-service }
+    environment:
+      <<: *common-env
+      PORT: 3001
+      API_PREFIX: api
+      API_VERSION: v1
+      DB_HOST: ${AUTH_DB_HOST}
+      DB_PORT: ${AUTH_DB_PORT}
+      DB_NAME: ${AUTH_DB_NAME}
+      DB_USER: ${AUTH_DB_USER}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD}
+      DB_SSL: ${AUTH_DB_SSL}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      REFRESH_ROTATION_STRICT: ${REFRESH_ROTATION_STRICT:-true}
+      RABBITMQ_QUEUE: auth-service.events.q
+      RABBITMQ_DLK: auth-service.events.dlq
+      BCRYPT_SALT_ROUNDS: 10
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  user-service:
+    <<: *backend-service
+    build: { context: ../../services/user-service }
+    environment:
+      <<: *common-env
+      PORT: 3002
+      API_PREFIX: api
+      API_VERSION: v1
+      DB_HOST: ${USER_DB_HOST}
+      DB_PORT: ${USER_DB_PORT}
+      DB_NAME: ${USER_DB_NAME}
+      DB_USER: ${USER_DB_USER}
+      DB_PASSWORD: ${USER_DB_PASSWORD}
+      DB_SSL: ${USER_DB_SSL}
+      RABBITMQ_QUEUE: user-service.events.q
+      RABBITMQ_DLK: user-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3002/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  outlet-service:
+    <<: *backend-service
+    build: { context: ../../services/outlet-service }
+    environment:
+      <<: *common-env
+      PORT: 3003
+      DB_HOST: ${OUTLET_DB_HOST}
+      DB_PORT: ${OUTLET_DB_PORT}
+      DB_NAME: ${OUTLET_DB_NAME}
+      DB_USER: ${OUTLET_DB_USER}
+      DB_PASSWORD: ${OUTLET_DB_PASSWORD}
+      DB_SSL: ${OUTLET_DB_SSL}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3003/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  product-service:
+    <<: *backend-service
+    build: { context: ../../services/product-service }
+    environment:
+      <<: *common-env
+      PORT: 3004
+      DB_HOST: ${PRODUCT_DB_HOST}
+      DB_PORT: ${PRODUCT_DB_PORT}
+      DB_NAME: ${PRODUCT_DB_NAME}
+      DB_USER: ${PRODUCT_DB_USER}
+      DB_PASSWORD: ${PRODUCT_DB_PASSWORD}
+      DB_SSL: ${PRODUCT_DB_SSL}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3004/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  inventory-service:
+    <<: *backend-service
+    build: { context: ../../services/inventory-service }
+    environment:
+      <<: *common-env
+      PORT: 3005
+      DB_HOST: ${INVENTORY_DB_HOST}
+      DB_PORT: ${INVENTORY_DB_PORT}
+      DB_NAME: ${INVENTORY_DB_NAME}
+      DB_USER: ${INVENTORY_DB_USER}
+      DB_PASSWORD: ${INVENTORY_DB_PASSWORD}
+      DB_SSL: ${INVENTORY_DB_SSL}
+      RABBITMQ_QUEUE: inventory-service.events.q
+      RABBITMQ_DLK: inventory-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3005/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  sales-service:
+    <<: *backend-service
+    build: { context: ../../services/sales-service }
+    environment:
+      <<: *common-env
+      PORT: 3006
+      DB_HOST: ${SALES_DB_HOST}
+      DB_PORT: ${SALES_DB_PORT}
+      DB_NAME: ${SALES_DB_NAME}
+      DB_USER: ${SALES_DB_USER}
+      DB_PASSWORD: ${SALES_DB_PASSWORD}
+      DB_SSL: ${SALES_DB_SSL}
+      RABBITMQ_QUEUE: sales-service.events.q
+      RABBITMQ_DLK: sales-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3006/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  purchase-service:
+    <<: *backend-service
+    build: { context: ../../services/purchase-service }
+    environment:
+      <<: *common-env
+      PORT: 3007
+      DB_HOST: ${PURCHASE_DB_HOST}
+      DB_PORT: ${PURCHASE_DB_PORT}
+      DB_NAME: ${PURCHASE_DB_NAME}
+      DB_USER: ${PURCHASE_DB_USER}
+      DB_PASSWORD: ${PURCHASE_DB_PASSWORD}
+      DB_SSL: ${PURCHASE_DB_SSL}
+      RABBITMQ_QUEUE: purchase-service.events.q
+      RABBITMQ_DLK: purchase-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3007/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  accounts-service:
+    <<: *backend-service
+    build: { context: ../../services/accounts-service }
+    environment:
+      <<: *common-env
+      PORT: 3008
+      DB_HOST: ${ACCOUNTS_DB_HOST}
+      DB_PORT: ${ACCOUNTS_DB_PORT}
+      DB_NAME: ${ACCOUNTS_DB_NAME}
+      DB_USER: ${ACCOUNTS_DB_USER}
+      DB_PASSWORD: ${ACCOUNTS_DB_PASSWORD}
+      DB_SSL: ${ACCOUNTS_DB_SSL}
+      RABBITMQ_QUEUE: accounts-service.events.q
+      RABBITMQ_DLK: accounts-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3008/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  manufacturing-service:
+    <<: *backend-service
+    build: { context: ../../services/manufacturing-service }
+    environment:
+      <<: *common-env
+      PORT: 3009
+      DB_HOST: ${MANUFACTURING_DB_HOST}
+      DB_PORT: ${MANUFACTURING_DB_PORT}
+      DB_NAME: ${MANUFACTURING_DB_NAME}
+      DB_USER: ${MANUFACTURING_DB_USER}
+      DB_PASSWORD: ${MANUFACTURING_DB_PASSWORD}
+      DB_SSL: ${MANUFACTURING_DB_SSL}
+      RABBITMQ_QUEUE: manufacturing-service.events.q
+      RABBITMQ_DLK: manufacturing-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3009/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  ecommerce-service:
+    <<: *backend-service
+    build: { context: ../../services/ecommerce-service }
+    environment:
+      <<: *common-env
+      PORT: 3010
+      DB_HOST: ${ECOMMERCE_DB_HOST}
+      DB_PORT: ${ECOMMERCE_DB_PORT}
+      DB_NAME: ${ECOMMERCE_DB_NAME}
+      DB_USER: ${ECOMMERCE_DB_USER}
+      DB_PASSWORD: ${ECOMMERCE_DB_PASSWORD}
+      DB_SSL: ${ECOMMERCE_DB_SSL}
+      PAYMENT_SERVICE_URL: http://payment-service:3015
+      LOGISTICS_SERVICE_URL: http://logistics-service:3014
+      RABBITMQ_QUEUE: ecommerce-service.events.q
+      RABBITMQ_DLK: ecommerce-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3010/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  reporting-service:
+    <<: *backend-service
+    build: { context: ../../services/reporting-service }
+    environment:
+      <<: *common-env
+      PORT: 3011
+      DB_HOST: ${REPORTING_DB_HOST}
+      DB_PORT: ${REPORTING_DB_PORT}
+      DB_NAME: ${REPORTING_DB_NAME}
+      DB_USER: ${REPORTING_DB_USER}
+      DB_PASSWORD: ${REPORTING_DB_PASSWORD}
+      DB_SSL: ${REPORTING_DB_SSL}
+      RABBITMQ_QUEUE: reporting-service.events.q
+      RABBITMQ_DLK: reporting-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3011/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  notification-service:
+    <<: *backend-service
+    build: { context: ../../services/notification-service }
+    environment:
+      <<: *common-env
+      PORT: 3012
+      DB_HOST: ${NOTIFICATION_DB_HOST}
+      DB_PORT: ${NOTIFICATION_DB_PORT}
+      DB_NAME: ${NOTIFICATION_DB_NAME}
+      DB_USER: ${NOTIFICATION_DB_USER}
+      DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
+      DB_SSL: ${NOTIFICATION_DB_SSL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMS_PROVIDER: ${SMS_PROVIDER}
+      RABBITMQ_QUEUE: notification-service.events.q
+      RABBITMQ_DLK: notification-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3012/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  audit-service:
+    <<: *backend-service
+    build: { context: ../../services/audit-service }
+    environment:
+      <<: *common-env
+      PORT: 3013
+      DB_HOST: ${AUDIT_DB_HOST}
+      DB_PORT: ${AUDIT_DB_PORT}
+      DB_NAME: ${AUDIT_DB_NAME}
+      DB_USER: ${AUDIT_DB_USER}
+      DB_PASSWORD: ${AUDIT_DB_PASSWORD}
+      DB_SSL: ${AUDIT_DB_SSL}
+      RABBITMQ_QUEUE: audit-service.events.q
+      RABBITMQ_DLK: audit-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3013/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  logistics-service:
+    <<: *backend-service
+    build: { context: ../../services/logistics-service }
+    environment:
+      <<: *common-env
+      PORT: 3014
+      DB_HOST: ${LOGISTICS_DB_HOST}
+      DB_PORT: ${LOGISTICS_DB_PORT}
+      DB_NAME: ${LOGISTICS_DB_NAME}
+      DB_USER: ${LOGISTICS_DB_USER}
+      DB_PASSWORD: ${LOGISTICS_DB_PASSWORD}
+      DB_SSL: ${LOGISTICS_DB_SSL}
+      PATHAO_BASE_URL: ${PATHAO_BASE_URL}
+      PATHAO_CLIENT_ID: ${PATHAO_CLIENT_ID}
+      PATHAO_CLIENT_SECRET: ${PATHAO_CLIENT_SECRET}
+      STEADFAST_BASE_URL: ${STEADFAST_BASE_URL}
+      STEADFAST_API_KEY: ${STEADFAST_API_KEY}
+      STEADFAST_SECRET_KEY: ${STEADFAST_SECRET_KEY}
+      STEADFAST_SECRET: ${STEADFAST_SECRET_KEY}
+      RABBITMQ_QUEUE: logistics-service.events.q
+      RABBITMQ_DLK: logistics-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3014/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  payment-service:
+    <<: *backend-service
+    build: { context: ../../services/payment-service }
+    environment:
+      <<: *common-env
+      PORT: 3015
+      DB_HOST: ${PAYMENT_DB_HOST}
+      DB_PORT: ${PAYMENT_DB_PORT}
+      DB_NAME: ${PAYMENT_DB_NAME}
+      DB_USER: ${PAYMENT_DB_USER}
+      DB_PASSWORD: ${PAYMENT_DB_PASSWORD}
+      DB_SSL: ${PAYMENT_DB_SSL}
+      SSLCOMMERZ_STORE_ID: ${SSLCOMMERZ_STORE_ID}
+      SSLCOMMERZ_STORE_PASSWORD: ${SSLCOMMERZ_STORE_PASSWORD}
+      SSLCOMMERZ_BASE_URL: ${SSLCOMMERZ_BASE_URL}
+      SSLCOMMERZ_VALIDATION_URL: ${SSLCOMMERZ_VALIDATION_URL}
+      SSLCZ_STORE_ID: ${SSLCOMMERZ_STORE_ID}
+      SSLCZ_STORE_PASSWORD: ${SSLCOMMERZ_STORE_PASSWORD}
+      RABBITMQ_QUEUE: payment-service.events.q
+      RABBITMQ_DLK: payment-service.events.dlq
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3015/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  admin-web:
     restart: unless-stopped
+    build:
+      context: ../../apps/admin-web
     env_file:
       - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE}
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${API_GATEWAY_PORT:-3000}/api/v1/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100"]
       interval: 20s
       timeout: 10s
       retries: 5
     networks: [erp_net]
 
-  auth-service:
-    build:
-      context: ../../services/auth-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  user-service:
-    build:
-      context: ../../services/user-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  outlet-service:
-    build:
-      context: ../../services/outlet-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  product-service:
-    build:
-      context: ../../services/product-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  inventory-service:
-    build:
-      context: ../../services/inventory-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  sales-service:
-    build:
-      context: ../../services/sales-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  purchase-service:
-    build:
-      context: ../../services/purchase-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  manufacturing-service:
-    build:
-      context: ../../services/manufacturing-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  accounts-service:
-    build:
-      context: ../../services/accounts-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  ecommerce-service:
-    build:
-      context: ../../services/ecommerce-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  reporting-service:
-    build:
-      context: ../../services/reporting-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  notification-service:
-    build:
-      context: ../../services/notification-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  audit-service:
-    build:
-      context: ../../services/audit-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  logistics-service:
-    build:
-      context: ../../services/logistics-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  payment-service:
-    build:
-      context: ../../services/payment-service
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks: [erp_net]
-
-  admin-web:
-    build:
-      context: ../../apps/admin-web
-    restart: unless-stopped
-    env_file:
-      - ../env/.env.prod
-    networks: [erp_net]
-
   ecommerce-web:
+    restart: unless-stopped
     build:
       context: ../../apps/ecommerce-web
-    restart: unless-stopped
     env_file:
       - ../env/.env.prod
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3200"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
     networks: [erp_net]
 
   pos-pwa:
+    restart: unless-stopped
     build:
       context: ../../apps/pos-pwa
-    restart: unless-stopped
     env_file:
       - ../env/.env.prod
+    environment:
+      NODE_ENV: production
+      VITE_API_BASE: ${VITE_API_BASE}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3300"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+    networks: [erp_net]
+
+  db-backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    profiles: ["backup"]
+    env_file:
+      - ../env/.env.prod
+    environment:
+      BACKUP_ROOT: /var/backups/erp
+      RETENTION_DAYS: 14
+    volumes:
+      - ../backups:/opt/backups
+      - backup_data:/var/backups/erp
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        chmod +x /opt/backups/pg_backup.sh
+        while true; do
+          /opt/backups/pg_backup.sh
+          sleep 21600
+        done
     networks: [erp_net]
 
   reverse-proxy:
@@ -287,3 +508,4 @@ networks:
 volumes:
   rabbitmq_data:
   redis_data:
+  backup_data:

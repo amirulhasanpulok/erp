@@ -55,7 +55,23 @@ export class AuthRepository {
     });
   }
 
+  async listTokensForCredential(credentialId: string): Promise<RefreshTokenEntity[]> {
+    return this.refreshTokenRepository.find({
+      where: { credentialId }
+    });
+  }
+
   async revokeTokenById(id: string): Promise<void> {
     await this.refreshTokenRepository.update({ id }, { revoked: true });
+  }
+
+  async revokeAllTokensForCredential(
+    credentialId: string,
+    manager?: EntityManager
+  ): Promise<void> {
+    const repository = manager
+      ? manager.getRepository(RefreshTokenEntity)
+      : this.refreshTokenRepository;
+    await repository.update({ credentialId, revoked: false }, { revoked: true });
   }
 }

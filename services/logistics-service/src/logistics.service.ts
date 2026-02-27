@@ -14,6 +14,11 @@ export class LogisticsService {
     private readonly outboxService: OutboxService,
     @InjectDataSource() private readonly dataSource: DataSource
   ) {}
+
+  private getSteadfastSecretKey(): string {
+    return process.env.STEADFAST_SECRET_KEY ?? process.env.STEADFAST_SECRET ?? '';
+  }
+
   async create(dto: CreateShipmentDto) {
     const trackingId = await this.createProviderShipment(dto.provider, dto.orderId);
     const { shipment, outbox } = await this.dataSource.transaction(async (manager) => {
@@ -109,7 +114,7 @@ export class LogisticsService {
           headers: {
             'Content-Type': 'application/json',
             'Api-Key': process.env.STEADFAST_API_KEY ?? '',
-            'Secret-Key': process.env.STEADFAST_SECRET ?? ''
+            'Secret-Key': this.getSteadfastSecretKey()
           },
           body: JSON.stringify({ invoice: orderId })
         });
@@ -146,7 +151,7 @@ export class LogisticsService {
           headers: {
             'Content-Type': 'application/json',
             'Api-Key': process.env.STEADFAST_API_KEY ?? '',
-            'Secret-Key': process.env.STEADFAST_SECRET ?? ''
+            'Secret-Key': this.getSteadfastSecretKey()
           },
           body: JSON.stringify({ tracking_code: trackingId })
         });

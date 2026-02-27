@@ -41,6 +41,10 @@ class EnvironmentVariables {
   @Min(60)
   EVENT_IDEMPOTENCY_TTL_SECONDS: number = 86400;
 
+  @IsInt()
+  @Min(1)
+  EVENT_DLQ_MAX_RETRIES: number = 3;
+
   @IsString()
   AUTH_SERVICE_URL!: string;
 
@@ -102,6 +106,24 @@ class EnvironmentVariables {
 
   @IsString()
   CORS_ORIGINS: string = 'http://localhost:3100,http://localhost:3200,http://localhost:3300';
+
+  @IsBoolean()
+  HELMET_ENABLED: boolean = true;
+
+  @IsBoolean()
+  TRUST_PROXY: boolean = true;
+
+  @IsString()
+  INTERNAL_IP_WHITELIST: string = '127.0.0.1,::1';
+
+  @IsBoolean()
+  INTERNAL_IP_WHITELIST_ENABLED: boolean = true;
+
+  @IsBoolean()
+  OTEL_ENABLED: boolean = false;
+
+  @IsString()
+  LOG_LEVEL: string = 'info';
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {

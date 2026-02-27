@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 36 33% 98%;
+  --foreground: 218 44% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 218 44% 14%;
+  --border: 218 23% 85%;
+  --muted: 210 20% 95%;
+  --muted-foreground: 215 20% 35%;
+  --primary: 191 78% 31%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 24 89% 48%;
+  --success: 150 76% 31%;
+  --warning: 34 92% 43%;
+  --danger: 0 74% 47%;
+}
+
+.dark {
+  --background: 214 42% 10%;
+  --foreground: 210 32% 92%;
+  --card: 218 34% 13%;
+  --card-foreground: 210 32% 92%;
+  --border: 217 24% 24%;
+  --muted: 217 23% 20%;
+  --muted-foreground: 215 20% 70%;
+  --primary: 190 91% 44%;
+  --primary-foreground: 214 42% 12%;
+  --accent: 35 92% 58%;
+  --success: 150 73% 40%;
+  --warning: 38 93% 57%;
+  --danger: 2 80% 61%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(13, 148, 136, 0.14), transparent 40%),
+    radial-gradient(circle at 90% 10%, rgba(249, 115, 22, 0.16), transparent 35%),
+    hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans), sans-serif;
+}
+
+.font-heading {
+  font-family: var(--font-heading), sans-serif;
+}

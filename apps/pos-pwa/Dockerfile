@@ -1,8 +1,14 @@
-FROM node:20-alpine
+FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . .
-EXPOSE 3300
-CMD ["npm","run","dev"]
+RUN npm run build
 
+FROM node:20-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+RUN npm install -g serve@14
+COPY --from=build /app/dist ./dist
+EXPOSE 3300
+CMD ["serve", "-s", "dist", "-l", "3300"]

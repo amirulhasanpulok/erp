@@ -68,6 +68,9 @@ class EnvironmentVariables {
   @IsInt()
   @Min(4)
   BCRYPT_SALT_ROUNDS: number = 10;
+
+  @IsBoolean()
+  REFRESH_ROTATION_STRICT: boolean = true;
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {
@@ -80,4 +83,3 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
   }
   return validated;
 }
-

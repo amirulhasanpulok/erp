@@ -28,5 +28,51 @@ export class ReportsRepository {
     const result = await qb.getRawOne<{ total: string }>();
     return Number(result?.total ?? 0);
   }
-}
 
+  async kpis(outletId?: string): Promise<
+    Array<{
+      outletId: string;
+      salesEvents: number;
+      paymentEvents: number;
+      shipmentEvents: number;
+      totalEvents: number;
+      snapshotDate: string;
+    }>
+  > {
+    const qb = this.repo.manager
+      .createQueryBuilder()
+      .select('k.outlet_id', 'outletId')
+      .addSelect('k.sales_events', 'salesEvents')
+      .addSelect('k.payment_events', 'paymentEvents')
+      .addSelect('k.shipment_events', 'shipmentEvents')
+      .addSelect('k.total_events', 'totalEvents')
+      .addSelect('k.snapshot_date', 'snapshotDate')
+      .from('mv_reporting_kpis', 'k');
+
+    if (outletId) {
+      qb.where('k.outlet_id = :outletId', { outletId });
+    }
+
+    const rows = await qb.getRawMany<{
+      outletId: string;
+      salesEvents: string;
+      paymentEvents: string;
+      shipmentEvents: string;
+      totalEvents: string;
+      snapshotDate: string;
+    }>();
+
+    return rows.map((row) => ({
+      outletId: row.outletId,
+      salesEvents: Number(row.salesEvents ?? 0),
+      paymentEvents: Number(row.paymentEvents ?? 0),
+      shipmentEvents: Number(row.shipmentEvents ?? 0),
+      totalEvents: Number(row.totalEvents ?? 0),
+      snapshotDate: row.snapshotDate
+    }));
+  }
+
+  async refreshKpiMaterializedView(): Promise<void> {
+    await this.repo.query('REFRESH MATERIALIZED VIEW mv_reporting_kpis');
+  }
+}

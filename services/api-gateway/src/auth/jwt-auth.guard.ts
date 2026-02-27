@@ -9,6 +9,16 @@ import { ConfigService } from '@nestjs/config';
 import { verify } from 'jsonwebtoken';
 import { Request } from 'express';
 
+type AuthPrincipal = {
+  sub: string;
+  userId?: string;
+  outletId?: string;
+  role?: string;
+  permissions?: string[];
+  email?: string;
+  tokenType?: string;
+};
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   private readonly logger = new Logger(JwtAuthGuard.name);
@@ -16,7 +26,9 @@ export class JwtAuthGuard implements CanActivate {
   constructor(private readonly configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request & { user?: unknown }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: AuthPrincipal; auth?: AuthPrincipal }>();
     const authHeader = request.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -26,8 +38,12 @@ export class JwtAuthGuard implements CanActivate {
     const token = authHeader.slice(7);
 
     try {
-      const payload = verify(token, this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'));
+      const payload = verify(
+        token,
+        this.configService.getOrThrow<string>('JWT_ACCESS_SECRET')
+      ) as AuthPrincipal;
       request.user = payload;
+      request.auth = payload;
       return true;
     } catch (error) {
       this.logger.warn(`Token validation failed: ${(error as Error).message}`);
@@ -35,4 +51,3 @@ export class JwtAuthGuard implements CanActivate {
     }
   }
 }
-

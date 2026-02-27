@@ -6,7 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectDataSource } from '@nestjs/typeorm';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { DataSource, EntityManager } from 'typeorm';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -90,10 +90,15 @@ export class AuthService {
       throw new UnauthorizedException('Credential not available');
     }
 
-    const validTokens = await this.repository.listValidTokensForCredential(credential.id);
-    const matchedToken = await this.findMatchedRefreshToken(validTokens, refreshToken);
+    const allTokens = await this.repository.listTokensForCredential(credential.id);
+    const matchedToken = await this.findMatchedRefreshToken(allTokens, refreshToken);
     if (!matchedToken) {
       throw new UnauthorizedException('Refresh token revoked or invalid');
+    }
+
+    if (matchedToken.revoked || matchedToken.expiresAt.getTime() <= Date.now()) {
+      await this.repository.revokeAllTokensForCredential(credential.id);
+      throw new UnauthorizedException('Refresh token reuse detected; all sessions revoked');
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -137,9 +142,6 @@ export class AuthService {
     plainToken: string
   ): Promise<RefreshTokenEntity | null> {
     for (const token of validTokens) {
-      if (token.expiresAt.getTime() <= Date.now()) {
-        continue;
-      }
       const matched = await bcrypt.compare(plainToken, token.tokenHash);
       if (matched) {
         return token;
@@ -181,6 +183,14 @@ export class AuthService {
     const rounds = this.configService.get<number>('BCRYPT_SALT_ROUNDS', 10);
     const refreshHash = await bcrypt.hash(refreshToken, rounds);
     const expiresAt = this.resolveRefreshExpiryDate(refreshExpiresIn);
+
+    const strictRotation =
+      String(this.configService.get<string>('REFRESH_ROTATION_STRICT', 'true')).toLowerCase() ===
+      'true';
+
+    if (strictRotation) {
+      await this.repository.revokeAllTokensForCredential(credentialId, manager);
+    }
 
     await this.repository.createRefreshToken(
       {

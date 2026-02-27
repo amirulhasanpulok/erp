@@ -15,11 +15,20 @@ export class PaymentService {
     private readonly outboxService: OutboxService,
     @InjectDataSource() private readonly dataSource: DataSource
   ) {}
+
+  private getSslCommerzBaseUrl(): string {
+    return process.env.SSLCOMMERZ_BASE_URL ?? process.env.SSLCZ_BASE_URL ?? '';
+  }
+
+  private getSslCommerzStorePassword(): string {
+    return process.env.SSLCOMMERZ_STORE_PASSWORD ?? process.env.SSLCZ_STORE_PASSWORD ?? '';
+  }
+
   async initiate(dto: InitiatePaymentDto) {
     const p = await this.repo.create({ outletId: dto.outletId, orderId: dto.orderId, amount: dto.amount, status: 'initiated' });
     return {
       paymentId: p.id,
-      gatewayUrl: `${process.env.SSLCOMMERZ_BASE_URL}/gwprocess/v4/api.php?tran_id=${p.id}`,
+      gatewayUrl: `${this.getSslCommerzBaseUrl()}/gwprocess/v4/api.php?tran_id=${p.id}`,
       status: p.status
     };
   }
@@ -54,7 +63,7 @@ export class PaymentService {
     if (!verifyKey || !verifySign) {
       return { valid: false };
     }
-    const storePassword = process.env.SSLCOMMERZ_STORE_PASSWORD ?? '';
+    const storePassword = this.getSslCommerzStorePassword();
     const fields = verifyKey.split(',');
     const body = fields
       .map((k) => `${k}=${String(payload[k] ?? '')}`)
